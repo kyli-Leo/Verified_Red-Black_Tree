@@ -65,7 +65,46 @@ module Property {
   // }
 
 
+  predicate rb_tree_property_2(t: Rb_tree) {
+    match t
+    case Null => true
+    case Node(_, _, _, _) => root_property2(t)
+  }
 
+  predicate root_property2(t: Rb_tree) {
+    match t
+    case Null => true
+    case Node(color, _, _, _) => color == Black
+  }
+  // Helper predicate
+  function isBlack(t: Rb_tree) : bool {
+    match t
+    case Null => true
+    case Node(c, _, _, _) => c == Black
+  }
 
+  predicate red_property2(t: Rb_tree) {
+    match t
+    case Null => true
+    case Node(color, _, left, right) =>
+      if color == Red then isBlack(left) && isBlack(right) && red_property2(left) && red_property2(right)
+      else red_property2(left) && red_property2(right)
+  }
+
+  function BlackHeight2(t: Rb_tree): int
+  {
+    match t
+    case Null => 1
+    case Node(color, _, left, right) =>
+      var leftHeight := BlackHeight2(left);
+      var rightHeight := BlackHeight2(right);
+      if leftHeight != rightHeight then -1
+      else if color == Black then leftHeight + 1
+      else leftHeight
+  }
+
+  predicate black_property(t: Rb_tree) {
+    BlackHeight2(t) != -1
+  }
 
 }

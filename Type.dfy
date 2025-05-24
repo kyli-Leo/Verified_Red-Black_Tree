@@ -21,6 +21,7 @@ module Type {
 
   // }
   datatype Color = Red | Black
+  // Leaf property enforce by definition
   datatype Rb_tree = Null | Node(color: Color, key: int, left: Rb_tree, right: Rb_tree)
 }
 

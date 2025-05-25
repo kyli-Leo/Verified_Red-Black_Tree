@@ -68,7 +68,11 @@ module Property {
   predicate rb_tree_property_2(t: Rb_tree) {
     match t
     case Null => true
-    case Node(_, _, _, _) => root_property2(t)
+    case Node(_, _, _, _) =>
+      root_property2(t) &&
+      red_property2(t) &&
+      black_property2(t) &&
+      left_leaning_property(t)
   }
 
   predicate root_property2(t: Rb_tree) {
@@ -76,18 +80,19 @@ module Property {
     case Null => true
     case Node(color, _, _, _) => color == Black
   }
-  // Helper predicate
-  function isBlack(t: Rb_tree) : bool {
+
+  function nodeColor(t: Rb_tree): Color
+  {
     match t
-    case Null => true
-    case Node(c, _, _, _) => c == Black
+    case Null => Black
+    case Node(c, _, _, _) => c
   }
 
   predicate red_property2(t: Rb_tree) {
     match t
     case Null => true
     case Node(color, _, left, right) =>
-      if color == Red then isBlack(left) && isBlack(right) && red_property2(left) && red_property2(right)
+      if color == Red then nodeColor(left) == Black && nodeColor(right) == Black && red_property2(left) && red_property2(right)
       else red_property2(left) && red_property2(right)
   }
 
@@ -103,8 +108,16 @@ module Property {
       else leftHeight
   }
 
-  predicate black_property(t: Rb_tree) {
+  predicate black_property2(t: Rb_tree) {
     BlackHeight2(t) != -1
   }
 
+  predicate left_leaning_property(t: Rb_tree) {
+    match t
+    case Null => true
+    case Node(color, _, left, right) =>
+      (if color == Black then nodeColor(right) == Black else true) &&
+      left_leaning_property(left) &&
+      left_leaning_property(right)
+  }
 }

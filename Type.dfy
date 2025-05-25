@@ -6,7 +6,6 @@ module Type {
   //   var right: Node?
   //   var parent: Node?
 
-
   //   constructor(k: int) {
   //     key := k;
   //     color := true;

@@ -1,8 +1,10 @@
 include "Type.dfy"
 include "Property.dfy"
+include "Lem.dfy"
 module Operations {
   import opened Type
   import opened Property
+  import opened Lem
 
   // This is the pre-condition for rotate_left
   predicate right_leaning_red_link(t: Rb_tree)
@@ -13,7 +15,7 @@ module Operations {
     case _ => false
   }
 
-  function rotate_left(h: Rb_tree): Rb_tree
+  function rotate_left(h: Rb_tree) : Rb_tree
     requires right_leaning_red_link(h)
     ensures !right_leaning_red_link(rotate_left(h))
     decreases h
@@ -36,20 +38,37 @@ module Operations {
     case _ => false
   }
 
-  function rotate_right(h: Rb_tree): Rb_tree
-    requires h.Node?
+  method rotate_right(h: Rb_tree) returns (result: Rb_tree)
     requires double_left_red_link(h)
-    // requires !right_leaning_red_link(h) true but the proof uhhhh
-    requires h.color == Black
-    ensures !double_left_red_link(rotate_right(h))
+    requires h.Node?
+    requires h.right.Node?
+    requires double_left_red_link(h)
+    requires bst_property(h)
+    ensures bst_property(result)
+    ensures contain(result) == contain(h)
     decreases h
   {
-    match h
-    case Node(h_color, h_key, Node(Red, x_key, Node(Red, ll_key, ll_left, ll_right), x_right), h_right) =>
-      var new_h := Node(Red, h_key, x_right, h_right);
-      var new_x := Node(h_color, x_key, Node(Red, ll_key, ll_left, ll_right), new_h);
-      assert new_x.color == h_color;
-      new_x
+    var new_h := Node(Red, h.key, h.left.right, h.right);
+    result := Node(h.color, h.left.key, h.left.left, new_h);
+    assert contain(new_h) == {h.key} + contain(h.left.right) + contain(h.right);
+    assert contain(result) == contain(h.left.left) + {h.left.key} + contain(new_h);
+    assert new_h.key == h.key;
+    assert result.key == h.left.key;
+
+    assert forall x :: x in contain(result.left) ==> x < result.key;
+    assert contain(result.right) == contain(h.left.right) + contain(h.right) + {new_h.key};
+    assert forall x :: x in contain(h.left.right) ==> x > result.key;
+    assert forall x :: x in contain(h.right) ==> x > new_h.key;
+    assert bst_property(result.left);
+    assert bst_property(h);
+    bst_meaning(h);
+    assert forall x :: x in contain(h.left.right) ==> x > h.left.key;
+    assert forall x :: x in contain(h.right) ==> x > h.left.key;
+    assert(bst_property(new_h.left));
+    assert bst_property(new_h.right);
+    bst_transitivity_right(h);
+    assert forall x :: x in contain(new_h.left) ==> x < new_h.key;
+    return;
   }
 
 
@@ -62,60 +81,73 @@ module Operations {
     case _ => false
   }
 
-  function flip_color(h: Rb_tree): Rb_tree
+
+
+  method flip_color(h: Rb_tree) returns (result : Rb_tree)
     requires hasRedChildren(h)
-    ensures !hasRedChildren(flip_color(h))
+    requires bst_property(h)
+    ensures bst_property(result)
+    ensures equal_content_property(result, h)
+    ensures !hasRedChildren(result)
     decreases h
   {
-    match h
-    case Node(_, key, Node(_, l_key, l_left, l_right), Node(_, r_key, r_left, r_right)) =>
-      var new_left := Node(Black, l_key, l_left, l_right);
-      var new_right := Node(Black, r_key, r_left, r_right);
-      var new_h := Node(Red, key, new_left, new_right);
-      new_h
+    var new_left := Node(Black, h.left.key, h.left.left, h.left.right);
+    assert bst_property(h.left);
+    assert bst_property(h.right);
+    var new_right := Node(Black, h.right.key, h.right.left, h.right.right);
+    result := Node(Red, h.key, new_left, new_right);
+    assert contain(new_left) == contain(h.left);
+    assert contain(new_right) == contain(h.right);
+    assert contain(result) == contain(new_left) + contain(new_right) + {h.key};
+    return;
   }
 
-  function nodeColor(t: Rb_tree): Color
-  {
-    match t
-    case Null => Black
-    case Node(c, _, _, _) => c
-  }
-
-  function insert_recur(t: Rb_tree, key: int): Rb_tree
+  method insert_recur(t: Rb_tree, insert_key: int) returns (result :Rb_tree)
     decreases t
+    requires bst_property(t)
+    ensures bst_property(result)
+    ensures contain(result) == contain(t) + {insert_key}
+
   {
-    var inserted := match t
-      case Null => Node(Red, key, Null, Null)
-      case Node(color, k, left, right) =>
-        if key < k then Node(color, k, insert_recur(left, key), right)
-        else if key > k then Node(color, k, left, insert_recur(right, key))
-        else Node(color, k, left, right);
+    if t.Null? {
+      result := Node(Red, insert_key, Null, Null);
+    } else {
+      if insert_key > t.key {
+        var r := insert_recur(t.right, insert_key);
+        assert bst_property(r);
+        assert bst_property(t.left);
+        result := Node(t.color, t.key, t.left, r);
+        assert contain(result) == contain(t.left) + contain(r) + {t.key};
+        assert forall x :: x in contain(t.left) ==> x < t.key;
+        assert contain(r) == {insert_key} + contain(t.right);
+        assert forall x :: x in contain(r) ==> x > t.key;
+        assert bst_property(result);
+      } else if insert_key < t.key {
+        var l := insert_recur(t.left, insert_key);
+        result := Node(t.color, t.key, l, t.right);
+        assert forall x :: x in contain(t.right) ==> x > insert_key;
+      } else {
+        result := t;
+      }
+    }
+    return;
 
-    var step1 := if nodeColor(inserted.right) == Red && nodeColor(inserted.left) == Black
-                 then rotate_left(inserted)
-                 else inserted;
-
-    var step2 := match step1
-      case Node(_, _, Node(Red, _, Node(Red, _, _, _), _), _) => rotate_right(step1)
-      case _ => step1;
-
-    var step3 := match step2
-      case Node(Black, _, Node(Red, _, _, _), Node(Red, _, _, _)) => flip_color(step2)
-      case _ => step2;
-
-    step3
   }
-  // Wrapper function for the recursive and then change root color
-  function insert(t: Rb_tree, key: int): Rb_tree
-    requires rb_tree_property_2(t)
-    ensures rb_tree_property_2(insert(t, key))
-  {
-    var new_tree := insert_recur(t, key);
 
-    //Ensure the root is always Black from the side effect of flipcolor
-    match new_tree
-    case Null => Null
-    case Node(_, k, l, r) => Node(Black, k, l, r)
+  // Wrapper function for the recursive and then change root color
+  method insert(t: Rb_tree, key: int) returns (root:Rb_tree)
+    requires root_property2(t)
+    requires bst_property(t)
+    // requires red_property2(t)
+    // requires black_property2(t)
+    // requires left_leaning_property(t)
+    ensures root_property2(root)
+    ensures bst_property(root)
+    ensures contain(root) == contain(t) + {key}
+  {
+    root := insert_recur(t, key);
+    root := makeRootBlack(root);
+    lem_make_black(root);
+    return;
   }
 }

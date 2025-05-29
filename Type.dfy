@@ -1,26 +1,20 @@
 module Type {
-  // class Node {
+  // class NodeC {
   //   var key: int
-  //   var color: bool // true = RED, false = BLACK
-  //   var left: Node?
-  //   var right: Node?
-  //   var parent: Node?
-
-  //   constructor(k: int) {
+  //   var color: bool // true == RED, false == BLACK
+  //   var index: nat
+  //   constructor(k: int, idx: nat) {
   //     key := k;
+  //     index := idx;
   //     color := true;
-  //     left := null;
-  //     right := null;
-  //     parent := null;
   //   }
   // }
 
   // class RedBlackTree {
-  //   var root: Node?
-
+  //   var arr : array<NodeC>
   // }
+
   datatype Color = Red | Black
-  // Leaf property enforce by definition
   datatype Rb_tree = Null | Node(color: Color, key: int, left: Rb_tree, right: Rb_tree)
 }
 

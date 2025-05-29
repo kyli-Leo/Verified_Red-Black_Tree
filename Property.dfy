@@ -1,7 +1,7 @@
 include "Type.dfy"
 module Property {
   import opened Type
-  // predicate rb_tree_property(root: Node?)
+  // predicate rb_tree_property(root: NodeC?)
   //   reads root
   // {
   //   root_property(root) &&
@@ -11,14 +11,14 @@ module Property {
 
   // }
 
-  // predicate root_property(root: Node?)
+  // predicate root_property(root: NodeC?)
   //   reads root
   // {
   //   if root == null then true
   //   else !root.color
   // }
 
-  // ghost method NodeSize(n: Node?) returns (s: nat)
+  // ghost method NodeSize(n: NodeC?) returns (s: nat)
   //   decreases n
   // {
   //   if n == null {
@@ -32,7 +32,7 @@ module Property {
   //   }
   // }
 
-  // predicate red_property(n: Node?)
+  // predicate red_property(n: NodeC?)
   //   reads *
   //   decreases n
   // {
@@ -47,7 +47,7 @@ module Property {
   //     red_property(n.right)
   // }
 
-  // function BlackHeight(n: Node?): int
+  // function BlackHeight(n: NodeC?): int
   //   decreases n
   // {
   //   // this implies leaf property
@@ -60,7 +60,7 @@ module Property {
   //     else left_height + (if n.color then 0 else 1)
   // }
 
-  // predicate black_property(n: Node?) {
+  // predicate black_property(n: NodeC?) {
   //   BlackHeight(n) != -1
   // }
 
@@ -75,6 +75,7 @@ module Property {
       left_leaning_property(t)
   }
 
+  // the root node should be black
   predicate root_property2(t: Rb_tree) {
     match t
     case Null => true
@@ -88,11 +89,15 @@ module Property {
     case Node(c, _, _, _) => c
   }
 
+  // red node cannot have red childrens
   predicate red_property2(t: Rb_tree) {
     match t
     case Null => true
     case Node(color, _, left, right) =>
-      if color == Red then nodeColor(left) == Black && nodeColor(right) == Black && red_property2(left) && red_property2(right)
+      if color == Red
+      then nodeColor(left) == Black &&
+           nodeColor(right) == Black &&
+           red_property2(left) && red_property2(right)
       else red_property2(left) && red_property2(right)
   }
 
@@ -112,6 +117,8 @@ module Property {
     BlackHeight2(t) != -1
   }
 
+  // Only left leaning red line is allowed
+  // Does not allow black node with right child with red node
   predicate left_leaning_property(t: Rb_tree) {
     match t
     case Null => true
@@ -119,5 +126,25 @@ module Property {
       (if color == Black then nodeColor(right) == Black else true) &&
       left_leaning_property(left) &&
       left_leaning_property(right)
+  }
+
+  function contain(t: Rb_tree) : set<int> {
+    match t
+    case Null => {}
+    case Node(_, key, left, right) => {key} + contain(left) + contain(right)
+  }
+
+  predicate bst_property(t:Rb_tree) {
+    match t
+    case Null => true
+    case Node(_, key, left, right) =>
+      bst_property(left) &&
+      bst_property(right) &&
+      (forall x :: x in contain(left) ==> x < key) &&
+      (forall y :: y in contain(right) ==> y > key)
+  }
+
+  predicate equal_content_property(t1:Rb_tree, t2:Rb_tree) {
+    contain(t1) == contain(t2)
   }
 }

@@ -71,8 +71,7 @@ module Property {
     case Node(_, _, _, _) =>
       root_property2(t) &&
       red_property2(t) &&
-      black_property2(t) &&
-      left_leaning_property(t)
+      black_property2(t)
   }
 
   // the root node should be black
@@ -108,24 +107,13 @@ module Property {
     case Node(color, _, left, right) =>
       var leftHeight := BlackHeight2(left);
       var rightHeight := BlackHeight2(right);
-      if leftHeight != rightHeight then -1
+      if leftHeight != rightHeight || leftHeight == -1 || rightHeight == -1 then -1
       else if color == Black then leftHeight + 1
       else leftHeight
   }
 
   predicate black_property2(t: Rb_tree) {
     BlackHeight2(t) != -1
-  }
-
-  // Only left leaning red line is allowed
-  // Does not allow black node with right child with red node
-  predicate left_leaning_property(t: Rb_tree) {
-    match t
-    case Null => true
-    case Node(color, _, left, right) =>
-      (if color == Black then nodeColor(right) == Black else true) &&
-      left_leaning_property(left) &&
-      left_leaning_property(right)
   }
 
   function contain(t: Rb_tree) : set<int> {
@@ -147,4 +135,43 @@ module Property {
   predicate equal_content_property(t1:Rb_tree, t2:Rb_tree) {
     contain(t1) == contain(t2)
   }
+
+  function isRed(t: Rb_tree): bool {
+    match t
+    case Null => false
+    case Node(color, _, _, _) => color == Red
+  }
+
+  function isBlack(t: Rb_tree): bool {
+    match t
+    case Null => true
+    case Node(color, _, _, _) => color == Black
+  }
+
+  // predicate goodColor(t: Rb_tree)
+  // {
+  //   match t
+  //   case Empty         => true
+  //   case Node(c,_,l,r) =>
+  //     match c
+  //     case Red   => nodeColor(l) == Black && nodeColor(r) == Black
+  //     case Black => nodeColor(r) == Red ==> nodeColor(l) == Red
+  // }
+
+
+  // predicate isLLRB (t: Rb_tree)
+  // {
+  //   match t
+  //   case Empty         => true
+  //   case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && BlackHeight2(l) == BlackHeight2(r) &&
+  //                         bst_property(t) && goodColor(t)
+  // }
+
+  // predicate weakLLRB (t: Rb_tree)
+  // {
+  //   match t
+  //   case Empty         => true
+  //   case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && BlackHeight2(l) == BlackHeight2(r) &&
+  //                         bst_property(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
+  // }
 }

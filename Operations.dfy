@@ -28,6 +28,11 @@ module Operations {
     ensures BlackHeight(result) ==BlackHeight(h)
   /*ensures root_property(result)
     ensures strongLLRB(result) */
+    ensures contain(h) == contain(result)
+    ensures result.color == h.color
+    ensures result.left.Node? && result.left.color == Red
+    ensures isRed(result.left)
+
     decreases h
   {
     var new_h := Node(Red, h.key, h.left, h.right.left);
@@ -55,9 +60,12 @@ module Operations {
     requires BlackHeight(h.left) == BlackHeight(h.right)
     // this is a must
     requires BlackHeight(h.left.left) == BlackHeight(h.left.right)
+    // this is a must
+    requires BlackHeight(h.left.left) == BlackHeight(h.left.right)
     requires bst_property(h)
     ensures bst_property(result)
     ensures contain(result) == contain(h)
+    ensures BlackHeight(result.left) == BlackHeight(result.right)
     ensures BlackHeight(result.left) == BlackHeight(result.right)
     ensures BlackHeight(result) == BlackHeight(h)
     ensures result.color == h.color
@@ -93,6 +101,8 @@ module Operations {
   method flip_color(h: Rb_tree) returns (result : Rb_tree)
     requires h.Node? && h.left.Node? && h.right.Node?
     requires h.left.color == Red && h.right.color == Red
+    requires h.Node? && h.left.Node? && h.right.Node?
+    requires h.left.color == Red && h.right.color == Red
     requires bst_property(h)
     requires black_property2(h)
     ensures bst_property(result)
@@ -103,12 +113,24 @@ module Operations {
     ensures  result.right.left  == h.right.left
     ensures  result.right.right == h.right.right
     ensures BlackHeight(result.left) == BlackHeight(result.right)
+    ensures result.Node? && result.left.Node? && result.right.Node?
+    ensures  result.left.left   == h.left.left
+    ensures  result.left.right  == h.left.right
+    ensures  result.right.left  == h.right.left
+    ensures  result.right.right == h.right.right
+    ensures BlackHeight(result.left) == BlackHeight(result.right)
     decreases h
   {
     var new_left_color := (if h.left.color == Red then Black else Red);
     var new_left := Node(new_left_color, h.left.key, h.left.left, h.left.right);
+    var new_left_color := (if h.left.color == Red then Black else Red);
+    var new_left := Node(new_left_color, h.left.key, h.left.left, h.left.right);
     assert bst_property(h.left);
     assert bst_property(h.right);
+    var new_right_color := (if h.right.color == Red then Black else Red);
+    var new_right := Node(new_right_color, h.right.key, h.right.left, h.right.right);
+    var result_color := ((if h.color == Red then Black else Red));
+    result := Node(result_color, h.key, new_left, new_right);
     var new_right_color := (if h.right.color == Red then Black else Red);
     var new_right := Node(new_right_color, h.right.key, h.right.left, h.right.right);
     var result_color := ((if h.color == Red then Black else Red));
@@ -123,8 +145,12 @@ module Operations {
     decreases t
     requires bst_property(t)
     requires strongLLRB(t)
+    requires strongLLRB(t)
     ensures bst_property(result)
     ensures contain(result) == contain(t) + {insert_key}
+    ensures isBlack(t) ==> strongLLRB(result)
+    ensures !isBlack(t) ==> weakLLRB(result)
+    ensures BlackHeight(t) == BlackHeight(result)
     ensures isBlack(t) ==> strongLLRB(result)
     ensures !isBlack(t) ==> weakLLRB(result)
     ensures BlackHeight(t) == BlackHeight(result)
@@ -151,6 +177,9 @@ module Operations {
         assert forall x :: x in contain(t.right) ==> x > insert_key;
       } else {
         result := t;
+      }
+      //assert weakLLRB(result);
+      if isRed(result.left) && isRed(result.right) {
         assert black_property2(result);
       }
       //assert weakLLRB(result);
@@ -166,7 +195,7 @@ module Operations {
       }
 
       if double_left_red_link(result) {
-        //result := rotate_right(result);
+        ////result := rotate_right(result);
       }
 
 
@@ -183,13 +212,11 @@ module Operations {
 
     ensures bst_property(result)
     ensures root_property(result)
+    ensures root_property(result)
     ensures contain(t) == contain(result)
   {
     blackHeight_lem(t);
     if t.Node? {
-
-      // We want to tell dafny that we are greater than 0
-
       result := Node(Black, t.key, t.left, t.right);
       assert BlackHeight2(result) == 1 + BlackHeight2(t.left);
     }
@@ -205,6 +232,7 @@ module Operations {
     requires root_property2(t)
     requires bst_property(t)
     requires strongLLRB(t)
+    requires root_property(t)
     requires root_property(t)
     ensures root_property(root)
     ensures bst_property(root)

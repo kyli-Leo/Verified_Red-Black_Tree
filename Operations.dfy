@@ -121,12 +121,9 @@ module Operations {
     assert contain(result) == contain(new_left) + contain(new_right) + {h.key};
 
     assert h.left.color == Red && h.right.color == Red;
-    assert h.color == Black;
-    assert BlackHeight2(h) == BlackHeight2(h.left) + 1;
     assert BlackHeight2(new_left) == BlackHeight2(h.left) + 1;
     assert BlackHeight2(new_right) == BlackHeight2(h.right) + 1;
     assert BlackHeight2(result) == BlackHeight2(new_left);
-    assert BlackHeight2(new_left) != -1;
     return;
   }
 
@@ -134,7 +131,6 @@ module Operations {
     decreases t
     requires bst_property(t)
     requires black_property2(t)
-    requires llrb_property(t)
     ensures bst_property(result)
     ensures contain(result) == contain(t) + {insert_key}
     ensures black_property2(result)

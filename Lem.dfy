@@ -39,8 +39,4 @@ module Lem {
     assert bst_property(t.left);
     assert forall x :: x in contain(t.right.left) ==> x in contain(t.right);
   }
-
-  lemma blackHeight_lem(t:Rb_tree)
-    ensures BlackHeight2(t) != -1 ==> BlackHeight2(t) > 0
-  {}
 }

@@ -65,14 +65,14 @@ module Property {
   // }
 
 
-  predicate rb_tree_property_2(t: Rb_tree) {
-    match t
-    case Null => true
-    case Node(_, _, _, _) =>
-      root_property2(t) &&
-      red_property2(t) &&
-      black_property2(t)
-  }
+  // predicate rb_tree_property_2(t: Rb_tree) {
+  //   match t
+  //   case Null => true
+  //   case Node(_, _, _, _) =>
+  //     root_property2(t) &&
+  //     red_property2(t) &&
+  //     black_property2(t)
+  // }
 
   // the root node should be black
   predicate root_property2(t: Rb_tree) {
@@ -88,33 +88,39 @@ module Property {
     case Node(c, _, _, _) => c
   }
 
-  // red node cannot have red childrens
-  predicate red_property2(t: Rb_tree) {
-    match t
-    case Null => true
-    case Node(color, _, left, right) =>
-      if color == Red
-      then nodeColor(left) == Black &&
-           nodeColor(right) == Black &&
-           red_property2(left) && red_property2(right)
-      else red_property2(left) && red_property2(right)
+  // // red node cannot have red childrens
+  // predicate red_property2(t: Rb_tree) {
+  //   match t
+  //   case Null => true
+  //   case Node(color, _, left, right) =>
+  //     if color == Red
+  //     then nodeColor(left) == Black &&
+  //          nodeColor(right) == Black &&
+  //          red_property2(left) && red_property2(right)
+  //     else red_property2(left) && red_property2(right)
+  // }
+
+  function Max(left:int , right:int):int
+  {
+    if left >= right then left
+    else right
   }
 
-  function BlackHeight2(t: Rb_tree): int
+  function BlackHeight(t: Rb_tree): int
   {
     match t
     case Null => 1
     case Node(color, _, left, right) =>
-      var leftHeight := BlackHeight2(left);
-      var rightHeight := BlackHeight2(right);
-      if leftHeight != rightHeight || leftHeight == -1 || rightHeight == -1 then -1
-      else if color == Black then leftHeight + 1
-      else leftHeight
+      var leftHeight := BlackHeight(left);
+      var rightHeight := BlackHeight(right);
+      var result := Max(leftHeight, rightHeight);
+      if color == Black then result + 1
+      else result
   }
 
-  predicate black_property2(t: Rb_tree) {
-    BlackHeight2(t) != -1
-  }
+  // predicate black_property2(t: Rb_tree) {
+  //   BlackHeight2(t) != -1
+  // }
 
   function contain(t: Rb_tree) : set<int> {
     match t
@@ -148,30 +154,29 @@ module Property {
     case Node(color, _, _, _) => color == Black
   }
 
-  // predicate goodColor(t: Rb_tree)
-  // {
-  //   match t
-  //   case Empty         => true
-  //   case Node(c,_,l,r) =>
-  //     match c
-  //     case Red   => nodeColor(l) == Black && nodeColor(r) == Black
-  //     case Black => nodeColor(r) == Red ==> nodeColor(l) == Red
-  // }
+  predicate goodColor(t: Rb_tree)
+  {
+    match t
+    case Null => true
+    case Node(color,_,l,r) =>
+      if color == Red then nodeColor(l) == Black && nodeColor(r) == Black
+      else nodeColor(r) == Red ==> nodeColor(l) == Red
+  }
 
 
-  // predicate isLLRB (t: Rb_tree)
-  // {
-  //   match t
-  //   case Empty         => true
-  //   case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && BlackHeight2(l) == BlackHeight2(r) &&
-  //                         bst_property(t) && goodColor(t)
-  // }
+  predicate isLLRB (t: Rb_tree)
+  {
+    match t
+    case Null => true
+    case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && black &&
+                          bst_property(t) && goodColor(t)
+  }
 
-  // predicate weakLLRB (t: Rb_tree)
-  // {
-  //   match t
-  //   case Empty         => true
-  //   case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && BlackHeight2(l) == BlackHeight2(r) &&
-  //                         bst_property(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
-  // }
+  predicate weakLLRB (t: Rb_tree)
+  {
+    match t
+    case Null => true
+    case Node(c,k,l,r) => isLLRB(l) && isLLRB(r) && black_property2(t) &&
+                          bst_property(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
+  }
 }

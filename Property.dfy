@@ -89,4 +89,5 @@ module Property {
     case Node(c,k,l,r) => strongLLRB(l) && strongLLRB(r) && BlackHeight(l) == BlackHeight(r) &&
                           bst_property(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
   }
+
 }

@@ -99,6 +99,7 @@ module Operations {
     requires h.left.color == Red && h.right.color == Red
     requires BlackHeight(h.left) == BlackHeight(h.right)
     requires bst_property(h)
+    requires strongLLRB(h)
     ensures bst_property(result)
     ensures equal_content_property(result, h)
     ensures result.Node? && result.left.Node? && result.right.Node?
@@ -107,6 +108,8 @@ module Operations {
     ensures  result.right.left  == h.right.left
     ensures  result.right.right == h.right.right
     ensures BlackHeight(result.left) == BlackHeight(result.right)
+    ensures result.color == Red
+    ensures (h.Node? && h.color == Black && isRed(h.left) && isRed(h.right)) ==> BlackHeight(result) == BlackHeight(h)
     decreases h
   {
     var new_left_color := (if h.left.color == Red then Black else Red);
@@ -124,38 +127,54 @@ module Operations {
   }
 
   method insert_recur(t: Rb_tree, insert_key: int) returns (result :Rb_tree)
-    decreases t
+    decreases contain(t)
     requires bst_property(t)
     requires strongLLRB(t)
     ensures bst_property(result)
     ensures contain(result) == contain(t) + {insert_key}
-    ensures isBlack(t) ==> strongLLRB(result)
-    ensures !isBlack(t) ==> weakLLRB(result)
     ensures BlackHeight(t) == BlackHeight(result)
+    ensures isBlack(t) ==> strongLLRB(result)
+    ensures !isBlack(t) ==> weakLLRB(result) && result.color == Red
+    ensures weakLLRB(result)
+
   {
+    combination(t, result);
+    StrongVsWeak(t);
     if t.Null? {
       result := Node(Red, insert_key, Null, Null);
+      return;
     } else {
-      if insert_key > t.key {
-        var r := insert_recur(t.right, insert_key);
-        assert bst_property(r);
-        assert bst_property(t.left);
-        result := Node(t.color, t.key, t.left, r);
-        assert contain(result) == contain(t.left) + contain(r) + {t.key};
-        assert forall x :: x in contain(t.left) ==> x < t.key;
-        assert contain(r) == {insert_key} + contain(t.right);
-        assert forall x :: x in contain(r) ==> x > t.key;
-        assert bst_property(result);
-      } else if insert_key < t.key {
-        var l := insert_recur(t.left, insert_key);
-        result := Node(t.color, t.key, l, t.right);
-        assert forall x :: x in contain(t.right) ==> x > insert_key;
-      } else {
-        result := t;
+      var new_t := t;
+      if isRed(t.left) && isRed(t.right) {
+        assert strongLLRB(t) && isRed(t.left) && isRed(t.right);
+        assert t.color == Black;
+        new_t := flip_color(t);
+        assert new_t.Node?;
+        assert bst_property(new_t);
+        assert contain(new_t) == contain(t);
+        assert BlackHeight(new_t.left) == BlackHeight(new_t.right);
       }
-      //assert weakLLRB(result);
-      if isRed(result.left) && isRed(result.right) {
-        //result := flip_color(result);
+      assert strongLLRB(t);
+      assert isRed(t.left) && isRed(t.right) ==> t.color == Black && new_t.color == Red;
+      if insert_key > new_t.key {
+        var r := insert_recur(new_t.right, insert_key);
+        assert bst_property(r);
+        assert bst_property(new_t.left);
+        assert strongLLRB(r);
+        result := Node(new_t.color, new_t.key, new_t.left, r);
+        assert contain(result) == contain(new_t.left) + contain(r) + {new_t.key};
+        assert forall x :: x in contain(new_t.left) ==> x < new_t.key;
+        assert contain(r) == {insert_key} + contain(new_t.right);
+        assert forall x :: x in contain(r) ==> x > new_t.key;
+        assert bst_property(result);
+      } else if insert_key < new_t.key {
+        var l := insert_recur(new_t.left, insert_key);
+        result := Node(new_t.color, new_t.key, l, new_t.right);
+        assert forall x :: x in contain(new_t.right) ==> x > insert_key;
+        assert weakLLRB(l);
+      } else {
+        result := new_t;
+        assert strongLLRB(result);
       }
 
       if right_leaning_red_link(result) {
@@ -166,10 +185,8 @@ module Operations {
       }
 
       if double_left_red_link(result) {
-        ////result := rotate_right(result);
+        //result := rotate_right(result);
       }
-
-
     }
     return;
 

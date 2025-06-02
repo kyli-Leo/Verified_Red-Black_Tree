@@ -39,4 +39,15 @@ module Lem {
     assert bst_property(t.left);
     assert forall x :: x in contain(t.right.left) ==> x in contain(t.right);
   }
+
+  lemma StrongVsWeak(t:Rb_tree)
+    requires strongLLRB(t)
+    ensures weakLLRB(t)
+
+  {}
+
+  lemma combination(input :Rb_tree, output: Rb_tree)
+    ensures (isBlack(input) ==> strongLLRB(output)) && (!isBlack(input) ==> weakLLRB(output)) ==> weakLLRB(output)
+  {
+  }
 }

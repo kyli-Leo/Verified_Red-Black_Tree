@@ -18,7 +18,6 @@ module Operations {
   method rotate_left(h: Rb_tree) returns (result: Rb_tree)
     requires right_leaning_red_link(h)
     requires bst_property(h)
-    requires goodColor(h)
     requires BlackHeight(h.left) == BlackHeight(h.right)
     requires BlackHeight(h.right.left) == BlackHeight(h.right.right)
     ensures !right_leaning_red_link(result)
@@ -29,10 +28,13 @@ module Operations {
     /*ensures root_property(result)
       ensures strongLLRB(result) */
     ensures contain(h) == contain(result)
+    ensures  BlackHeight(result.left) == BlackHeight(result.right)
     ensures result.color == h.color
     ensures result.left.Node? && result.left.color == Red
     ensures isRed(result.left)
-
+    ensures result.left.Node? ==> result.left.left == h.left // Ensures N_new.left == h.left
+    ensures result.left.Node? ==> result.left.right == h.right.left // Ensures N_new.right == h.right.left
+    ensures result.right == h.right.right
     decreases h
   {
     var new_h := Node(Red, h.key, h.left, h.right.left);
@@ -44,15 +46,6 @@ module Operations {
     assert result.left.Node?;
     assert h.right.color == Red;
     return;
-  }
-
-
-  // This is the pre-condition for rotate_right
-  predicate double_left_red_link(h: Rb_tree)
-  {
-    match h
-    case Node(h_color, h_key, Node(Red, x_key, Node(Red, _, _, _), _), _) => true
-    case _ => false
   }
 
   method rotate_right(h: Rb_tree) returns (result: Rb_tree)
@@ -100,6 +93,7 @@ module Operations {
     requires BlackHeight(h.left) == BlackHeight(h.right)
     requires bst_property(h)
     requires strongLLRB(h)
+    ensures strongLLRB(result)
     ensures bst_property(result)
     ensures equal_content_property(result, h)
     ensures result.Node? && result.left.Node? && result.right.Node?
@@ -109,7 +103,7 @@ module Operations {
     ensures  result.right.right == h.right.right
     ensures BlackHeight(result.left) == BlackHeight(result.right)
     ensures result.color == Red
-    ensures (h.Node? && h.color == Black && isRed(h.left) && isRed(h.right)) ==> BlackHeight(result) == BlackHeight(h)
+    ensures BlackHeight(result) == BlackHeight(h)
     decreases h
   {
     var new_left_color := (if h.left.color == Red then Black else Red);
@@ -126,6 +120,112 @@ module Operations {
     return;
   }
 
+  method LLRB_Fixup_Flip(h: Rb_tree) returns (result: Rb_tree)
+    requires h.Node? && h.left.Node? && h.right.Node?
+    requires isRed(h.left) && isRed(h.right)
+    requires strongLLRB(h.left)  // h.left is Red, its children L_gc_L, L_gc_R are Black & sLLRB, BH(L_gc_L)==BH(L_gc_R)
+    requires strongLLRB(h.right) // h.right is Red, its children R_gc_L, R_gc_R are Black & sLLRB, BH(R_gc_L)==BH(R_gc_R)
+    requires BlackHeight(h.left) == BlackHeight(h.right)
+    requires bst_property(h)
+
+    ensures result.Node?
+    ensures result.color == (if h.color == Red then Black else Red)
+    ensures isBlack(result.left) && isBlack(result.right)
+    ensures contain(result) == contain(h)
+    // Corrected BlackHeight ensures for children (relative to h's children)
+    ensures BlackHeight(result.left) == BlackHeight(h.left) + 1
+    ensures BlackHeight(result.right) == BlackHeight(h.right) + 1
+    // Ensures for BlackHeight of result itself (this implies BH(result.left) == BH(result.right))
+    ensures BlackHeight(result.left) == BlackHeight(result.right)
+    // The overall BlackHeight(result) vs BlackHeight(h) relation:
+    ensures BlackHeight(result) == (if h.color == Red then BlackHeight(h) + 2 else BlackHeight(h))
+
+    ensures bst_property(result) // Let's ensure this component specifically
+    ensures strongLLRB(result)   // This is the main goal
+  {
+    var L_child_orig := h.left;
+    var R_child_orig := h.right;
+
+    // ---- Properties of L_child_orig (h.left) ----
+    // From requires strongLLRB(L_child_orig) and isRed(L_child_orig):
+    assert L_child_orig.left.Null? || (isBlack(L_child_orig.left) && strongLLRB(L_child_orig.left));
+    assert L_child_orig.right.Null? || (isBlack(L_child_orig.right) && strongLLRB(L_child_orig.right));
+    assert BlackHeight(L_child_orig.left) == BlackHeight(L_child_orig.right);
+    assert bst_property(L_child_orig);
+
+    // ---- Construct new_L_child ----
+    var new_L_child := Node(Black, L_child_orig.key, L_child_orig.left, L_child_orig.right);
+    // Prove strongLLRB(new_L_child)
+    // 1. Children L_child_orig.left, L_child_orig.right are strongLLRB (from above).
+    // 2. BH(L_child_orig.left) == BH(L_child_orig.right) (from above).
+    // 3. bst_property(new_L_child) (same structure as L_child_orig, bst_property is color-agnostic).
+    color_dont_change_color(L_child_orig, Black); // Use lemma if defined, or assert components
+    assert bst_property(new_L_child);
+    // 4. goodColor(new_L_child): new_L_child is Black. Its children L_child_orig.left, L_child_orig.right are Black.
+    //    (isBlack(L_child_orig.right) == Red ==> ...) is (false ==> ...) which is true.
+    assert goodColor(new_L_child);
+    assert strongLLRB(new_L_child); // Assert this intermediate step
+
+    // ---- Properties of R_child_orig (h.right) ---- (Similar to L_child_orig)
+    assert R_child_orig.left.Null? || (isBlack(R_child_orig.left) && strongLLRB(R_child_orig.left));
+    assert R_child_orig.right.Null? || (isBlack(R_child_orig.right) && strongLLRB(R_child_orig.right));
+    assert BlackHeight(R_child_orig.left) == BlackHeight(R_child_orig.right);
+    assert bst_property(R_child_orig);
+
+    // ---- Construct new_R_child ----
+    var new_R_child := Node(Black, R_child_orig.key, R_child_orig.left, R_child_orig.right);
+    // Prove strongLLRB(new_R_child) (similar to new_L_child)
+    color_dont_change_color(R_child_orig, Black);
+    assert bst_property(new_R_child);
+    assert goodColor(new_R_child);
+    assert strongLLRB(new_R_child); // Assert this intermediate step
+
+    // ---- BlackHeight equality for new children ----
+    // BH(new_L_child) = 1 + BH(L_child_orig) (since L_child_orig was Red)
+    // BH(new_R_child) = 1 + BH(R_child_orig) (since R_child_orig was Red)
+    // Requires BlackHeight(L_child_orig) == BlackHeight(R_child_orig) was true.
+    assert BlackHeight(new_L_child) == BlackHeight(new_R_child);
+
+    // ---- Construct final result ----
+    var new_parent_color := if h.color == Red then Black else Red;
+    result := Node(new_parent_color, h.key, new_L_child, new_R_child);
+
+    // ---- Prove bst_property(result) ----
+    // This requires:
+    // 1. bst_property(result.left) (i.e. bst_property(new_L_child)) - Asserted via strongLLRB(new_L_child)
+    // 2. bst_property(result.right) (i.e. bst_property(new_R_child)) - Asserted via strongLLRB(new_R_child)
+    // 3. (forall x :: x in contain(result.left) ==> x < result.key)
+    // 4. (forall y :: y in contain(result.right) ==> y > result.key)
+
+    // For 3:
+    assert contain(result.left) == contain(h.left); // Since structure and keys are same as h.left
+    assert result.key == h.key;
+    // From 'requires bst_property(h)', we know (forall x :: x in contain(h.left) ==> x < h.key)
+    // Therefore:
+    assert forall x :: x in contain(result.left) ==> x < result.key;
+
+    // For 4: (Similar logic)
+    assert contain(result.right) == contain(h.right);
+    assert forall y :: y in contain(result.right) ==> y > result.key;
+
+    assert bst_property(result); // This should now hold
+
+    // ---- Prove goodColor(result) ----
+    // result.left (new_L_child) is Black. result.right (new_R_child) is Black.
+    // If result.color is Red, goodColor holds.
+    // If result.color is Black, goodColor holds.
+    assert goodColor(result);
+
+    // All components for strongLLRB(result) are now established or asserted:
+    // - strongLLRB(result.left) (from assert strongLLRB(new_L_child))
+    // - strongLLRB(result.right) (from assert strongLLRB(new_R_child))
+    // - BlackHeight(result.left) == BlackHeight(result.right) (asserted above)
+    // - bst_property(result) (asserted above)
+    // - goodColor(result) (asserted above)
+  }
+
+
+
   method insert_recur(t: Rb_tree, insert_key: int) returns (result :Rb_tree)
     decreases contain(t)
     requires bst_property(t)
@@ -138,8 +238,7 @@ module Operations {
     ensures weakLLRB(result)
 
   {
-    combination(t, result);
-    StrongVsWeak(t);
+    strongVsWeak(t);
     if t.Null? {
       result := Node(Red, insert_key, Null, Null);
       return;
@@ -156,12 +255,17 @@ module Operations {
       }
       assert strongLLRB(t);
       assert isRed(t.left) && isRed(t.right) ==> t.color == Black && new_t.color == Red;
+      assert weakLLRB(new_t);
       if insert_key > new_t.key {
         var r := insert_recur(new_t.right, insert_key);
         assert bst_property(r);
         assert bst_property(new_t.left);
         assert strongLLRB(r);
+        assert strongLLRB(new_t.left);
+        assert BlackHeight(new_t.left) == BlackHeight(r);
         result := Node(new_t.color, new_t.key, new_t.left, r);
+        assert bst_property(result);
+        // this is bst property
         assert contain(result) == contain(new_t.left) + contain(r) + {new_t.key};
         assert forall x :: x in contain(new_t.left) ==> x < new_t.key;
         assert contain(r) == {insert_key} + contain(new_t.right);
@@ -169,23 +273,69 @@ module Operations {
         assert bst_property(result);
       } else if insert_key < new_t.key {
         var l := insert_recur(new_t.left, insert_key);
+        assert strongLLRB(l.left);
+        assert strongLLRB(l.right);
         result := Node(new_t.color, new_t.key, l, new_t.right);
         assert forall x :: x in contain(new_t.right) ==> x > insert_key;
-        assert weakLLRB(l);
+        assert strongLLRB(new_t.right);
+        assert BlackHeight(new_t.right) == BlackHeight(l);
       } else {
         result := new_t;
-        assert strongLLRB(result);
+        assert weakLLRB(result);
       }
+      // The new_t must has a balck right child in all case if it is a node
+      assert isBlack(new_t.right);
+      combination(t, result);
+      assert BlackHeight(result.left) == BlackHeight(result.right);
 
+      // What could we conclude before calling rotate left and right
+      assert weakLLRB(result.left);
+      assert strongLLRB(result.right);
+      var before_rotate_result := result;
       if right_leaning_red_link(result) {
-        assert result.Node?;
-        assert result.right.Node? && result.right.color == Red;
-        assert result.left.Null? || result.left.color == Black;
-        //result := rotate_left(result);
+        var h_orig_val_debug := result; // Use a distinct name
+        var X_debug := h_orig_val_debug.left;
+
+        // Minimal preconditions for rotate_left that MUST hold for h_orig_val_debug
+        assert bst_property(h_orig_val_debug);
+        assert BlackHeight(h_orig_val_debug.left) == BlackHeight(h_orig_val_debug.right);
+        assert h_orig_val_debug.right.Node? && isRed(h_orig_val_debug.right); // From right_leaning_red_link
+        assert BlackHeight(h_orig_val_debug.right.left) == BlackHeight(h_orig_val_debug.right.right);
+
+        var result_after_rotation_debug := rotate_left(h_orig_val_debug);
+        var N_new_debug := result_after_rotation_debug.left;
+
+        // The critical assertion:
+        assert N_new_debug.left == X_debug; // Focus on making this pass
+
+        // If it passes, assign back to the main 'result' and add back other assertions one by one
+        result := result_after_rotation_debug;
+        // Then try: assert N_new_debug.left.Null? || strongLLRB(N_new_debug.left); // (using N_new_debug or result.left)
+      } else {
+        assert weakLLRB(result.left);
+        assert strongLLRB(result.right);
       }
+      // We want to assert some prperties after possible right leaning
+      black_promote(t);
+      assert weakLLRB(before_rotate_result.left);
+      assert weakLLRB(result.left);
+      assert strongLLRB(result.right); // this is the code that cannot be proved
 
       if double_left_red_link(result) {
-        //result := rotate_right(result);
+        DLL_Contradicts_WeakLLRB_Child(result);
+        result := rotate_right(result);
+      }
+      assert strongLLRB(result.left);
+      assert strongLLRB(result.right);
+      assert result.color == Black ==> strongLLRB(result);
+      assert result.color == Red ==> weakLLRB(result);
+      assert isRed(result.left) && isRed(result.right) ==> result.color == Black;
+      assert !right_leaning_red_link(result);
+      assert !double_left_red_link(result);
+      assert goodColor(result.left);
+      assert goodColor(result.right);
+      if isRed(result.left) && isRed(result.right) {
+        result := LLRB_Fixup_Flip(result);
       }
     }
     return;

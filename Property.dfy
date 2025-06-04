@@ -64,6 +64,14 @@ module Property {
     case Node(color, _, _, _) => color == Black
   }
 
+  // This is the pre-condition for rotate_right
+  predicate double_left_red_link(h: Rb_tree)
+  {
+    match h
+    case Node(h_color, h_key, Node(Red, x_key, Node(Red, _, _, _), _), _) => true
+    case _ => false
+  }
+
   predicate goodColor(t: Rb_tree)
   {
     match t

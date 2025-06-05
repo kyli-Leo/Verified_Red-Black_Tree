@@ -1,10 +1,10 @@
 include "Type.dfy"
 module Property {
   import opened Type
-  predicate root_property(t: Rb_tree) {
+  predicate rootProperty(t: Rb_tree) {
     match t
     case Null => true
-    case Node(color, _, _, _) => color == Black
+    case Node(nodeColor, _, _, _) => nodeColor == Black
   }
 
   function nodeColor(t: Rb_tree): Color
@@ -24,11 +24,11 @@ module Property {
   {
     match t
     case Null => 1
-    case Node(color, _, left, right) =>
+    case Node(nodeColor, _, left, right) =>
       var leftHeight := BlackHeight(left);
       var rightHeight := BlackHeight(right);
       var result := Max(leftHeight, rightHeight);
-      if color == Black then result + 1
+      if nodeColor == Black then result + 1
       else result
   }
 
@@ -38,37 +38,37 @@ module Property {
     case Node(_, key, left, right) => {key} + contain(left) + contain(right)
   }
 
-  predicate bst_property(t:Rb_tree) {
+  predicate bstProperty(t:Rb_tree) {
     match t
     case Null => true
     case Node(_, key, left, right) =>
-      bst_property(left) &&
-      bst_property(right) &&
+      bstProperty(left) &&
+      bstProperty(right) &&
       (forall x :: x in contain(left) ==> x < key) &&
       (forall y :: y in contain(right) ==> y > key)
   }
 
-  predicate equal_content_property(t1:Rb_tree, t2:Rb_tree) {
+  predicate equalContentProperty(t1:Rb_tree, t2:Rb_tree) {
     contain(t1) == contain(t2)
   }
 
   function isRed(t: Rb_tree): bool {
     match t
     case Null => false
-    case Node(color, _, _, _) => color == Red
+    case Node(nodeColor, _, _, _) => nodeColor == Red
   }
 
   function isBlack(t: Rb_tree): bool {
     match t
     case Null => true
-    case Node(color, _, _, _) => color == Black
+    case Node(nodeColor, _, _, _) => nodeColor == Black
   }
 
   // This is the pre-condition for rotate_right
-  predicate double_left_red_link(h: Rb_tree)
+  predicate doubleLeftRedLink(h: Rb_tree)
   {
     match h
-    case Node(h_color, h_key, Node(Red, x_key, Node(Red, _, _, _), _), _) => true
+    case Node(h_nodeColor, h_key, Node(Red, x_key, Node(Red, _, _, _), _), _) => true
     case _ => false
   }
 
@@ -76,8 +76,8 @@ module Property {
   {
     match t
     case Null => true
-    case Node(color,_,l,r) =>
-      if color == Red then nodeColor(l) == Black && nodeColor(r) == Black
+    case Node(c,_,l,r) =>
+      if c == Red then nodeColor(l) == Black && nodeColor(r) == Black
       else nodeColor(r) == Red ==> nodeColor(l) == Red
   }
 
@@ -87,7 +87,7 @@ module Property {
     match t
     case Null => true
     case Node(c,k,l,r) => strongLLRB(l) && strongLLRB(r) && BlackHeight(l) == BlackHeight(r) &&
-                          bst_property(t) && goodColor(t)
+                          bstProperty(t) && goodColor(t)
   }
 
   predicate weakLLRB (t: Rb_tree)
@@ -95,7 +95,7 @@ module Property {
     match t
     case Null => true
     case Node(c,k,l,r) => strongLLRB(l) && strongLLRB(r) && BlackHeight(l) == BlackHeight(r) &&
-                          bst_property(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
+                          bstProperty(t) && (nodeColor(r) == Red ==> nodeColor(l) == Red)
   }
 
 }

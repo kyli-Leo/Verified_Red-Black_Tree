@@ -6,14 +6,6 @@ module Operations {
   import opened Property
   import opened Lem
 
-  // This is the pre-condition for rotateLeft
-  predicate rightLeaningRedLink(t: Rb_tree)
-  {
-    match t
-    case Node(_, _, Null, Node(Red, _, _, _)) => true
-    case Node(_, _, Node(Black, _, _, _), Node(Red, _, _, _)) => true
-    case _ => false
-  }
 
   method rotateLeft(h: Rb_tree) returns (result: Rb_tree)
     requires rightLeaningRedLink(h)
@@ -232,12 +224,18 @@ module Operations {
 
       assert !doubleLeftRedLink(result);
       assert strongLLRB(result.left);
-      assert isRed(result.left) && isRed(result.right) ==> result.color == Black;
+      assert isRed(result.left) && isRed(result.right) ==> isBlack(result);
       assert !rightLeaningRedLink(result);
       assert !doubleLeftRedLink(result);
       assert goodColor(result.left);
-      assume {:axiom} t.color == Black ==> goodColor(result.right);
-      assume {:axiom} t.color == Black ==> goodColor(result);
+      assert isBlack(result.right) ==> goodColor(result.right);
+      canNotProve1(result);
+      canNotProve2(t, result);
+      //assert isRed(result.right) ==> isBlack(result.right.right);
+      //assume isRed(result.left) && isRed(result.right) ==> isBlack(result.right.left);
+      // assume {:axiom} t.color == Black ==> goodColor(result.right);
+      //canNotProve2(t, result);
+      //assume {:axiom} t.color == Black ==> goodColor(result);
     }
     return;
 

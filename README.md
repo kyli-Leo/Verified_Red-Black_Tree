@@ -1,2 +1,2 @@
 # Verified_Red-Black_Tree
-Formal verified red-black tree
+Formal verified left-leaning red-black tree

@@ -26,7 +26,6 @@ def populated_tree():
 
 
 def test_insert_empty_tree(empty_tree):
-    """Test inserting a single element into an empty tree."""
     t = Operations.default__.insert(empty_tree, 10)
 
     assert isinstance(t, Type.Rb__tree_Node)
